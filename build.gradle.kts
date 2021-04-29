@@ -12,7 +12,6 @@ mirai {
 
 dependencies {
     implementation("com.google.code.gson:gson:2.8.6")
-    implementation("org.jsoup:jsoup:1.13.1")
 }
 
 group = "com.dhr.bot.youtube"
