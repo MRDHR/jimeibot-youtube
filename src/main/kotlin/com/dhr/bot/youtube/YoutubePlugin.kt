@@ -109,43 +109,50 @@ class YoutubePlugin : KotlinPlugin(
                         proc = Runtime.getRuntime().exec(args) // 执行py文件
                         //用输入输出流来截取结果
                         val `in` = BufferedReader(InputStreamReader(proc.inputStream, "GBK"))
-                        val lastLine: String = `in`.readLines().last()
-                        `in`.close()
-                        proc.waitFor()
-                        val youtubeLiveStatusVo = gson.fromJson(lastLine, YoutubeLiveStatusVo::class.java)
-                        if ("true" == youtubeLiveStatusVo.isLive) {
-                            //直播中
-                            if (!it.isLiving) {
-                                //之前没有在直播
-                                val result = StringBuilder("您订阅的->")
-                                    .append(it.channelName)
-                                    .append("开始直播啦")
-                                    .append("\n蓝条条：https://www.youtube.com/channel/$channelId/live")
-                                    .append("\n直播标题：" + youtubeLiveStatusVo.title)
-                                bot.getGroup(it.groupId)?.sendMessage(result.toString())
+                        val readLines = `in`.readLines()
+                        if (readLines.isNotEmpty()) {
+                            val lastLine: String = readLines.last()
+                            `in`.close()
+                            proc.waitFor()
+                            logger.info("查询结果：$lastLine")
+                            if (lastLine.isNotBlank()) {
+                                val youtubeLiveStatusVo = gson.fromJson(lastLine, YoutubeLiveStatusVo::class.java)
+                                if ("true" == youtubeLiveStatusVo.isLive) {
+                                    //直播中
+                                    if (!it.isLiving) {
+                                        //之前没有在直播
+                                        val result = StringBuilder("您订阅的->")
+                                            .append(it.channelName)
+                                            .append("开始直播啦")
+                                            .append("\n蓝条条：https://www.youtube.com/channel/$channelId/live")
+                                            .append("\n直播标题：" + youtubeLiveStatusVo.title)
+                                        bot.getGroup(it.groupId)?.sendMessage(result.toString())
+                                    }
+                                    it.isLiving = true
+                                } else {
+                                    //没有直播了
+                                    if (it.isLiving) {
+                                        //之前在直播
+                                        val result = StringBuilder("您订阅的->")
+                                            .append(it.channelName)
+                                            .append("下播啦")
+                                        bot.getGroup(it.groupId)?.sendMessage(result.toString())
+                                    }
+                                    it.isLiving = false
+                                }
                             }
-                            it.isLiving = true
-                        } else {
-                            //没有直播了
-                            if (it.isLiving) {
-                                //之前在直播
-                                val result = StringBuilder("您订阅的->")
-                                    .append(it.channelName)
-                                    .append("下播啦")
-                                bot.getGroup(it.groupId)?.sendMessage(result.toString())
-                            }
-                            it.isLiving = false
                         }
                     } catch (e: IOException) {
-                        e.printStackTrace()
+                        logger.error("IOException：$e")
                     } catch (e: InterruptedException) {
-                        e.printStackTrace()
+                        logger.error("InterruptedException：$e")
                     }
                     delay(50)
                 }
                 delay(60000)
                 queryYoutube()
             } catch (ex: Exception) {
+                logger.error("Exception：$ex")
                 delay(60000)
                 queryYoutube()
             }
